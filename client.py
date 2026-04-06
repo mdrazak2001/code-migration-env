@@ -55,7 +55,8 @@ class CodeMigrationEnv(
             Dictionary representation suitable for JSON encoding
         """
         return {
-            "message": action.message,
+            "translated_code": action.translated_code,
+            "explanation": action.explanation,
         }
 
     def _parse_result(self, payload: Dict) -> StepResult[CodeMigrationObservation]:
@@ -70,17 +71,21 @@ class CodeMigrationEnv(
         """
         obs_data = payload.get("observation", {})
         observation = CodeMigrationObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
-            done=payload.get("done", False),
-            reward=payload.get("reward"),
-            metadata=obs_data.get("metadata", {}),
+            task_id=obs_data.get("task_id", ""),
+            difficulty=obs_data.get("difficulty", "medium"),
+            source_code=obs_data.get("source_code", ""),
+            source_language=obs_data.get("source_language", ""),
+            target_language=obs_data.get("target_language", ""),
+            requirements=obs_data.get("requirements", ""),
+            test_description=obs_data.get("test_description", ""),
+            history=obs_data.get("history", []),
         )
 
         return StepResult(
             observation=observation,
             reward=payload.get("reward"),
             done=payload.get("done", False),
+            info=payload.get("info", {}),
         )
 
     def _parse_state(self, payload: Dict) -> State:

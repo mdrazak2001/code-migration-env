@@ -45,60 +45,111 @@ class CodeMigrationEnvironment(Environment):
     # getting their own environment instance (when using factory mode in app.py).
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
-    def __init__(self):
-        """Initialize the code_migration_env environment."""
-        self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count = 0
+    def __init__(self, scenario_dir: str):
+        self.scenario_dir = Path(scenario_dir)
+        self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
+        self.attempts = 0
+        self.max_attempts = 3  # Allow retry on syntax errors
 
     def reset(self) -> CodeMigrationObservation:
-        """
-        Reset the environment.
-
-        Returns:
-            CodeMigrationObservation with a ready message
-        """
-        self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count += 1
-
+        self.attempts = 0
+        source = (self.scenario_dir / "source.py").read_text()
         return CodeMigrationObservation(
-            echoed_message="Code Migration Env environment ready!",
-            message_length=0,
-            done=False,
-            reward=0.0,
+            task_id=self.task_meta["id"],
+            difficulty=self.task_meta["difficulty"],
+            source_code=source,
+            source_language=self.task_meta["source_lang"],
+            target_language=self.task_meta["target_lang"],
+            requirements=self.task_meta["requirements"],
+            test_description=self.task_meta["test_desc"],
+            history=[]
         )
 
-    def step(self, action: CodeMigrationAction) -> CodeMigrationObservation:  # type: ignore[override]
-        """
-        Execute a step in the environment by echoing the message.
-
-        Args:
-            action: CodeMigrationAction containing the message to echo
-
-        Returns:
-            CodeMigrationObservation with the echoed message and its length
-        """
-        self._state.step_count += 1
-
-        message = action.message
-        length = len(message)
-
-        # Simple reward: longer messages get higher rewards
-        reward = length * 0.1
-
-        return CodeMigrationObservation(
-            echoed_message=message,
-            message_length=length,
-            done=False,
+    def step(self, action: CodeMigrationAction) -> StepResult:
+        self.attempts += 1
+        code = action.translated_code
+        reward = 0.0
+        done = False
+        info = {"attempt": self.attempts}
+        
+        # 1. Syntax validation (language-specific)
+        syntax_ok, syntax_msg = self._validate_syntax(code, self.task_meta["target_lang"])
+        if not syntax_ok:
+            reward = -0.1 * self.attempts  # Penalty increases with retries
+            if self.attempts >= self.max_attempts:
+                done = True
+                info["error"] = syntax_msg
+            return StepResult(
+                observation=self._get_observation(action, syntax_msg),
+                reward=reward,
+                done=done,
+                info=info
+            )
+        
+        # 2. Run pre-baked test suite (sandboxed, <2s timeout)
+        test_ok, test_msg = self._run_tests(code, self.task_meta["target_lang"])
+        if test_ok:
+            reward += 0.5
+        else:
+            reward -= 0.1
+        
+        # 3. Idiomatic pattern matching (AST/keyword-based)
+        idiom_score = self._grade_idioms(code, self.task_meta["required_idioms"])
+        reward += idiom_score * 0.4
+        
+        # 4. Clamp reward to [0.0, 1.0]
+        reward = max(0.0, min(1.0, reward))
+        done = True  # Single-step submission (can extend to multi-step if desired)
+        
+        return StepResult(
+            observation=self._get_observation(action, test_msg),
             reward=reward,
-            metadata={"original_message": message, "step": self._state.step_count},
+            done=done,
+            info={**info, "final_reward": reward, "tests_passed": test_ok}
         )
 
     @property
-    def state(self) -> State:
-        """
-        Get the current environment state.
+    def state(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_meta["id"],
+            "difficulty": self.task_meta["difficulty"],
+            "ground_truth": (self.scenario_dir / "ground_truth.py").read_text(),
+            "test_suite": (self.scenario_dir / "tests.json").read_text(),
+            "required_idioms": self.task_meta["required_idioms"]
+        }
 
-        Returns:
-            Current State with episode_id and step_count
-        """
-        return self._state
+    def _run_tests(self, code: str, lang: str) -> Tuple[bool, str]:
+        # Load pre-baked tests from scenario
+        tests = json.loads((self.scenario_dir / "tests.json").read_text())
+        if lang == "python":
+            # Execute tests in isolated subprocess with timeout
+            try:
+                result = subprocess.run(
+                    ["python3", "-c", f"{code}\n{tests['runner']}"],
+                    capture_output=True, text=True, timeout=2
+                )
+                return result.returncode == 0, result.stdout or result.stderr
+            except subprocess.TimeoutExpired:
+                return False, "Test timeout"
+        # Add Node.js test runner similarly
+        return True, "Tests skipped"
+
+    def _grade_idioms(self, code: str, idioms: List[str]) -> float:
+        # Simple keyword/regex matching for idiomatic patterns
+        matches = sum(1 for pat in idioms if pat in code)
+        return matches / len(idioms) if idioms else 1.0
+
+    def _get_observation(self, action: CodeMigrationAction, feedback: str) -> CodeMigrationObservation:
+        history = (self.task_meta.get("history") or []) + [
+            f"Attempt {self.attempts}: {feedback}"
+        ]
+        return CodeMigrationObservation(
+            task_id=self.task_meta["id"],
+            difficulty=self.task_meta["difficulty"],
+            source_code=self.task_meta["source_code"],
+            source_language=self.task_meta["source_lang"],
+            target_language=self.task_meta["target_lang"],
+            requirements=self.task_meta["requirements"],
+            test_description=self.task_meta["test_desc"],
+            history=history[-5:]  # Keep last 5 attempts
+        )

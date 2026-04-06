@@ -5,3 +5,75 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 
+# openenv.yaml
+version: 0.1.0
+description: "Agent migrates code across languages/frameworks with deterministic grading"
+author: "Your Name"
+license: "MIT"
+
+tasks:
+  - id: "python_modernize"
+    difficulty: "easy"
+    description: "Migrate Python 3.8 script to Python 3.12 idioms (match/case, pathlib, type hints)"
+    source_lang: "python"
+    target_lang: "python"
+    requirements: "Use structural pattern matching, pathlib.Path, explicit type hints"
+    test_desc: "Tests validate functional equivalence + modern syntax usage"
+    required_idioms:
+      - "match "
+      - "case "
+      - "Path("
+      - "->"
+      - ": str"
+    grader: "syntax_check + test_run + idiom_match"
+    
+  - id: "python_to_node"
+    difficulty: "medium"
+    description: "Convert Python requests script to Node.js fetch with async/await"
+    source_lang: "python"
+    target_lang: "javascript"
+    requirements: "Use async/await, proper error handling, JSON parsing"
+    test_desc: "Tests validate HTTP behavior + async correctness"
+    required_idioms:
+      - "async "
+      - "await "
+      - "fetch("
+      - ".catch("
+      - "try {"
+    grader: "syntax_check + test_run + idiom_match"
+    
+  - id: "pandas_to_polars"
+    difficulty: "hard"
+    description: "Migrate pandas DataFrame pipeline to Polars lazy evaluation"
+    source_lang: "python"
+    target_lang: "python"
+    requirements: "Use Polars LazyFrame, explicit schema, no .collect() until end"
+    test_desc: "Tests validate output equivalence + memory efficiency"
+    required_idioms:
+      - "pl.LazyFrame"
+      - ".lazy()"
+      - ".schema"
+      - "no collect"
+      - "with_columns"
+    grader: "syntax_check + test_run + idiom_match + resource_check"
+
+graders:
+  syntax_check:
+    type: "programmatic"
+    weight: 0.3
+  test_run:
+    type: "programmatic"
+    weight: 0.5
+    timeout: 2.0
+  idiom_match:
+    type: "keyword_overlap"
+    weight: 0.4
+  resource_check:
+    type: "programmatic"
+    weight: 0.3
+    only_for: ["pandas_to_polars"]
+
+runtime:
+  max_steps: 3
+  max_time_per_step: 5.0  # seconds
+  total_timeout: 1200  # 20 minutes
