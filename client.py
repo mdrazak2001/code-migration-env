@@ -1,3 +1,4 @@
+# code_migration_env\client.py
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -12,7 +13,7 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from .models import CodeMigrationAction, CodeMigrationObservation
+from models import CodeMigrationAction, CodeMigrationObservation
 
 
 class CodeMigrationEnv(
@@ -84,8 +85,7 @@ class CodeMigrationEnv(
         return StepResult(
             observation=observation,
             reward=payload.get("reward"),
-            done=payload.get("done", False),
-            info=payload.get("info", {}),
+            done=payload.get("done", False)
         )
 
     def _parse_state(self, payload: Dict) -> State:

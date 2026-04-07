@@ -1,0 +1,3 @@
+{
+  "runner": "// syntax check only - runtime fetch not available in test\nconsole.assert(typeof getUser === 'function', 'getUser must be a function');"
+}

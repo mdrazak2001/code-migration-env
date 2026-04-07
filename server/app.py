@@ -1,3 +1,5 @@
+
+# code_migration_env\server\app.py
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -36,7 +38,7 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from ..models import CodeMigrationAction, CodeMigrationObservation
+    from models import CodeMigrationAction, CodeMigrationObservation
     from .code_migration_env_environment import CodeMigrationEnvironment
 except ModuleNotFoundError:
     from models import CodeMigrationAction, CodeMigrationObservation

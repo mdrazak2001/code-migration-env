@@ -23,7 +23,7 @@ HF_TOKEN = get_env_var("HF_TOKEN")
 API_KEY = HF_TOKEN
 
 TASK_NAME = os.environ.get("TASK_NAME", "python_modernize")
-IMAGE_NAME = os.environ.get("IMAGE_NAME", "huggingface/spaces/your-username/code-migration-env")
+IMAGE_NAME = os.environ.get("IMAGE_NAME", "huggingface/spaces/razak123/code-migration-env")
 MAX_STEPS = 3
 MAX_TOTAL_REWARD = 1.0  # Normalized max possible reward
 SUCCESS_SCORE_THRESHOLD = 0.5
@@ -129,4 +129,4 @@ Output ONLY valid JSON with keys: translated_code, explanation. Do not include m
     log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main())

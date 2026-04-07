@@ -1,0 +1,9 @@
+{
+  "id": "python_to_node",
+  "difficulty": "medium",
+  "source_lang": "python",
+  "target_lang": "javascript",
+  "requirements": "Use async/await, fetch API, proper error handling, JSON parsing",
+  "test_desc": "Tests validate async structure and fetch usage",
+  "required_idioms": ["async ", "await ", "fetch(", "try {", "catch"]
+}

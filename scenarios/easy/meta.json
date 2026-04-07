@@ -1,0 +1,9 @@
+{
+  "id": "python_modernize",
+  "difficulty": "easy",
+  "source_lang": "python",
+  "target_lang": "python",
+  "requirements": "Use structural pattern matching, pathlib.Path, explicit type hints",
+  "test_desc": "Tests validate functional equivalence + modern syntax usage",
+  "required_idioms": ["match ", "case ", "Path(", "->", ": str"]
+}

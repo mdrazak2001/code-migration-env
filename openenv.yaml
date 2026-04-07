@@ -72,8 +72,3 @@ graders:
     type: "programmatic"
     weight: 0.3
     only_for: ["pandas_to_polars"]
-
-runtime:
-  max_steps: 3
-  max_time_per_step: 5.0  # seconds
-  total_timeout: 1200  # 20 minutes

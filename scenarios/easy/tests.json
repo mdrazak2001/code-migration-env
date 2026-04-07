@@ -1,0 +1,3 @@
+{
+  "runner": "assert get_config('db_host') == 'localhost'\nassert get_config('db_port') == 5432\nassert get_config('unknown') is None"
+}

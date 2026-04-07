@@ -1,3 +1,5 @@
+# code_migration_env\server\code_migration_env_environment.py
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -10,11 +12,16 @@ Code Migration Env Environment Implementation.
 A simple test environment that echoes back messages sent to it.
 Perfect for testing HTTP server infrastructure.
 """
-
+import os
+import json
+from pathlib import Path
+import subprocess
+from typing import Any, Dict, List, Tuple
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
+from openenv.core.client_types import StepResult
 
 try:
     from ..models import CodeMigrationAction, CodeMigrationObservation
@@ -45,68 +52,109 @@ class CodeMigrationEnvironment(Environment):
     # getting their own environment instance (when using factory mode in app.py).
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
-    def __init__(self, scenario_dir: str):
+    def __init__(self, scenario_dir: str = None):
+        if scenario_dir is None:
+            scenario_dir = os.environ.get("SCENARIO_DIR", "/app/env/scenarios/easy")
         self.scenario_dir = Path(scenario_dir)
         self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
         self.attempts = 0
-        self.max_attempts = 3  # Allow retry on syntax errors
+        self.max_attempts = 3
+        self.rubric = None
+        self.history: List[str] = []
+        # Read source immediately so it's available even without reset()
+        self.source_code = (self.scenario_dir / "source.py").read_text()
 
-    def reset(self) -> CodeMigrationObservation:
+    def reset(self, seed=None, episode_id=None, **kwargs) -> CodeMigrationObservation:
+
+        if episode_id and episode_id in ("easy", "medium", "hard"):
+            base_dir = Path(os.environ.get("SCENARIOS_BASE", "/app/env/scenarios"))
+            self.scenario_dir = base_dir / episode_id
+            self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
+            self.source_code = (self.scenario_dir / "source.py").read_text()
+
         self.attempts = 0
-        source = (self.scenario_dir / "source.py").read_text()
-        return CodeMigrationObservation(
+        self.history: List[str] = []
+        self._reset_rubric()
+
+        obs = CodeMigrationObservation(
             task_id=self.task_meta["id"],
             difficulty=self.task_meta["difficulty"],
-            source_code=source,
+            source_code=self.source_code,
             source_language=self.task_meta["source_lang"],
             target_language=self.task_meta["target_lang"],
             requirements=self.task_meta["requirements"],
             test_description=self.task_meta["test_desc"],
-            history=[]
+            history=[],
+            reward=0.0,
+            done=False,
         )
+        return obs
 
-    def step(self, action: CodeMigrationAction) -> StepResult:
+
+    def _validate_syntax(self, code: str, lang: str) -> Tuple[bool, str]:
+        if lang == "python":
+            try:
+                import ast
+                ast.parse(code)
+                return True, "Syntax OK"
+            except SyntaxError as e:
+                return False, f"SyntaxError: {e}"
+        elif lang == "javascript":
+            # Basic check: try node --check if available
+            try:
+                import tempfile, os
+                with tempfile.NamedTemporaryFile(suffix=".js", mode="w", delete=False) as f:
+                    f.write(code)
+                    tmp = f.name
+                result = subprocess.run(
+                    ["node", "--check", tmp],
+                    capture_output=True, text=True, timeout=5
+                )
+                os.unlink(tmp)
+                return result.returncode == 0, result.stderr or "Syntax OK"
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                # node not available - skip syntax check
+                return True, "Syntax check skipped (node unavailable)"
+        else:
+            return True, "Syntax check skipped"
+
+    def step(self, action: CodeMigrationAction, timeout_s=None, **kwargs) -> CodeMigrationObservation:
         self.attempts += 1
         code = action.translated_code
         reward = 0.0
         done = False
-        info = {"attempt": self.attempts}
-        
-        # 1. Syntax validation (language-specific)
+
         syntax_ok, syntax_msg = self._validate_syntax(code, self.task_meta["target_lang"])
         if not syntax_ok:
-            reward = -0.1 * self.attempts  # Penalty increases with retries
-            if self.attempts >= self.max_attempts:
-                done = True
-                info["error"] = syntax_msg
-            return StepResult(
-                observation=self._get_observation(action, syntax_msg),
-                reward=reward,
-                done=done,
-                info=info
-            )
-        
-        # 2. Run pre-baked test suite (sandboxed, <2s timeout)
+            reward = max(-0.3, -0.1 * self.attempts)
+            done = self.attempts >= self.max_attempts
+            obs = self._get_observation(action, syntax_msg)
+            obs.reward = reward
+            obs.done = done
+            return obs
+
         test_ok, test_msg = self._run_tests(code, self.task_meta["target_lang"])
-        if test_ok:
-            reward += 0.5
-        else:
-            reward -= 0.1
-        
-        # 3. Idiomatic pattern matching (AST/keyword-based)
+        reward += 0.5 if test_ok else 0.0
+
         idiom_score = self._grade_idioms(code, self.task_meta["required_idioms"])
         reward += idiom_score * 0.4
-        
-        # 4. Clamp reward to [0.0, 1.0]
         reward = max(0.0, min(1.0, reward))
-        done = True  # Single-step submission (can extend to multi-step if desired)
+        done = True
+
+        obs = self._get_observation(action, test_msg)
+        obs.reward = reward
+        obs.done = done
+
+        info = {
+            "attempt": self.attempts,
+            "final_reward": reward,
+            "tests_passed": test_ok,
+            "submitted_code_preview": code[:200] + "..." if len(code) > 200 else code  # ← Add this
+        }
+        print("info: ", info)
         
-        return StepResult(
-            observation=self._get_observation(action, test_msg),
-            reward=reward,
-            done=done,
-            info={**info, "final_reward": reward, "tests_passed": test_ok}
-        )
+        return obs
+
 
     @property
     def state(self) -> Dict[str, Any]:
@@ -146,7 +194,7 @@ class CodeMigrationEnvironment(Environment):
         return CodeMigrationObservation(
             task_id=self.task_meta["id"],
             difficulty=self.task_meta["difficulty"],
-            source_code=self.task_meta["source_code"],
+            source_code=self.source_code,
             source_language=self.task_meta["source_lang"],
             target_language=self.task_meta["target_lang"],
             requirements=self.task_meta["requirements"],

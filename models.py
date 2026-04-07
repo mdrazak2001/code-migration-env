@@ -1,3 +1,4 @@
+# code_migration_env\models.py
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -12,7 +13,7 @@ The code_migration_env environment is a simple test environment that echoes back
 
 from openenv.core.env_server.types import Action, Observation
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict, Any
 
 
 class CodeMigrationAction(Action):
@@ -33,6 +34,9 @@ class CodeMigrationObservation(Observation):
     source_code: str
     source_language: str
     target_language: str
-    requirements: str  # "Must use async/await", "Must be type-safe", etc.
-    test_description: str  # What the pre-baked tests validate
-    history: Optional[List[str]] = None  # Prior attempts (for iterative refinement)
+    requirements: str
+    test_description: str
+    history: Optional[List[str]] = None
+    reward: float = 0.0   # add if not in base class
+    done: bool = False    # add if not in base class
+    info: Dict[str, Any] = Field(default_factory=dict)

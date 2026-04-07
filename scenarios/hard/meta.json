@@ -1,0 +1,9 @@
+{
+  "id": "pandas_to_polars",
+  "difficulty": "hard",
+  "source_lang": "python",
+  "target_lang": "python",
+  "requirements": "Use Polars LazyFrame, lazy evaluation, no .collect() until final step, explicit schema where possible",
+  "test_desc": "Tests validate LazyFrame usage and output equivalence",
+  "required_idioms": ["pl.scan_csv", ".lazy()", "with_columns", ".collect()", "pl.col"]
+}
