@@ -18,7 +18,7 @@ from typing import List, Literal, Optional, Dict, Any
 
 class CodeMigrationAction(Action):
     translated_code: str = Field(description="The migrated code in target language")
-    explanation: str = Field(max_length=500, description="Brief rationale for key changes")
+    explanation: str = Field(max_length=2000, description="Brief rationale for key changes")
     
     @field_validator('translated_code')
     @classmethod

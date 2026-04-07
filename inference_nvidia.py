@@ -51,12 +51,12 @@ def get_nvidia_model_candidates() -> List[Tuple[str, str]]:
     """
     candidates = [
         # (os.environ.get("NVIDIA_MODEL_STEP_FLASH", ""), os.environ.get("NVIDIA_KEY_STEP_FLASH", "")),
-        # (os.environ.get("NVIDIA_MODEL_DEVSTRAL", ""), os.environ.get("NVIDIA_KEY_DEVSTRAL", "")),
+        (os.environ.get("NVIDIA_MODEL_DEVSTRAL", ""), os.environ.get("NVIDIA_KEY_DEVSTRAL", "")),
         (os.environ.get("NVIDIA_MODEL_KIMI_K2", ""), os.environ.get("NVIDIA_KEY_KIMI_K2", "")),
-        # (os.environ.get("NVIDIA_MODEL_MISTRAL_LARGE", ""), os.environ.get("NVIDIA_KEY_MISTRAL_LARGE", "")),
-        # (os.environ.get("NVIDIA_MODEL_DEEPSEEK_V3_1", ""), os.environ.get("NVIDIA_KEY_DEEPSEEK_V3_1", "")),
-        # (os.environ.get("NVIDIA_MODEL_MAGISTRAL_SMALL", ""), os.environ.get("NVIDIA_KEY_MAGISTRAL_SMALL", "")),
-        # (os.environ.get("NVIDIA_MODEL_GLM47", ""), os.environ.get("NVIDIA_KEY_GLM47", "")),
+        (os.environ.get("NVIDIA_MODEL_MISTRAL_LARGE", ""), os.environ.get("NVIDIA_KEY_MISTRAL_LARGE", "")),
+        (os.environ.get("NVIDIA_MODEL_DEEPSEEK_V3_1", ""), os.environ.get("NVIDIA_KEY_DEEPSEEK_V3_1", "")),
+        (os.environ.get("NVIDIA_MODEL_MAGISTRAL_SMALL", ""), os.environ.get("NVIDIA_KEY_MAGISTRAL_SMALL", "")),
+        (os.environ.get("NVIDIA_MODEL_GLM47", ""), os.environ.get("NVIDIA_KEY_GLM47", "")),
     ]
     return [(model, key) for model, key in candidates if model and key]
 
@@ -71,8 +71,8 @@ def extract_json_object(text: str) -> Optional[Dict]:
     cleaned = clean_json_response(text)
     try:
         return json.loads(cleaned)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[DEBUG] JSON parse failed: {e}", flush=True)  # ADD
 
     # fallback: try to grab the first {...} block
     match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
@@ -137,6 +137,7 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
         text = (completion.choices[0].message.content or "").strip()
         print(f"[DEBUG] Raw model response: {text[:200]}", flush=True)
         parsed = extract_json_object(text)
+        print(f"[DEBUG] Parsed result: {parsed}", flush=True)
         if parsed and isinstance(parsed, dict):
             translated_code = str(parsed.get("translated_code", "")).strip()
             explanation = str(parsed.get("explanation", "")).strip()
@@ -158,21 +159,19 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
             "explanation": f"API error: {e}"
         }
 
-async def run_single_task(task_name: str, episode_id: str, models, current_model):
+async def run_single_task_with_env(env, task_name: str, episode_id: str, models, current_model):
     log_start(task=task_name, env=IMAGE_NAME, model=current_model)
+
+    from models import CodeMigrationAction
 
     rewards: List[float] = []
     steps_taken = 0
     score = 0.0
     success = False
 
-    from client import CodeMigrationEnv
-    from models import CodeMigrationAction
-
-    env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
-
     try:
-        result = await env.reset(episode_id=episode_id)  # ← selects scenario
+        # Reset with episode_id to switch scenario — no new container needed
+        result = await env.reset(episode_id=episode_id)
 
         for step in range(1, MAX_STEPS + 1):
             if result.done:
@@ -195,7 +194,7 @@ async def run_single_task(task_name: str, episode_id: str, models, current_model
             try:
                 action = CodeMigrationAction(
                     translated_code=action_data["translated_code"],
-                    explanation=action_data["explanation"]
+                    explanation=action_data["explanation"][:1999]
                 )
             except Exception as e:
                 action = CodeMigrationAction(
@@ -226,14 +225,14 @@ async def run_single_task(task_name: str, episode_id: str, models, current_model
     except Exception as e:
         print(f"[ERROR] Task {task_name} failed: {e}", flush=True)
 
-    finally:
-        try:
-            await env.close()
-        except Exception as e:
-            print(f"[DEBUG] env.close() error: {e}", flush=True)
-
     log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
-    return success, steps_taken, score, rewards
+    return {
+        "task": task_name,
+        "success": success,
+        "steps": steps_taken,
+        "score": score,
+        "rewards": rewards
+    }
 
 
 async def main() -> None:
@@ -245,17 +244,23 @@ async def main() -> None:
     current_model = models[0][0]
     task_results = []
 
-    for task_name, episode_id in TASKS:
-        success, steps, score, rewards = await run_single_task(
-            task_name, episode_id, models, current_model
-        )
-        task_results.append({
-            "task": task_name,
-            "success": success,
-            "steps": steps,
-            "score": score,
-            "rewards": rewards
-        })
+    from client import CodeMigrationEnv
+    from models import CodeMigrationAction
+
+    # ONE env for all tasks
+    env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
+
+    try:
+        for task_name, episode_id in TASKS:
+            result = await run_single_task_with_env(
+                env, task_name, episode_id, models, current_model
+            )
+            task_results.append(result)
+    finally:
+        try:
+            await env.close()
+        except Exception as e:
+            print(f"[DEBUG] env.close() error: {e}", flush=True)
 
     print("\n[SUMMARY] Task Results:", flush=True)
     for r in task_results:

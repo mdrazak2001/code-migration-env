@@ -1,3 +1,3 @@
 {
-  "runner": "import ast, inspect\nsrc = inspect.getsource(process_sales)\nassert '.collect()' in src or 'collect()' in src, 'Must call collect()'\nassert 'scan_csv' in src or '.lazy()' in src or 'LazyFrame' in src, 'Must use lazy evaluation'\nassert 'group_by' in src or 'groupby' in src, 'Must aggregate by region'"
+  "runner": "assert 'scan_csv' in CODE_SOURCE or 'LazyFrame' in CODE_SOURCE, 'Must use lazy loading'\nassert 'group_by' in CODE_SOURCE, 'Must aggregate by region'\nassert 'with_columns' in CODE_SOURCE, 'Must use with_columns'\nassert '.collect()' in CODE_SOURCE, 'Must collect at the end'"
 }

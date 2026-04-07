@@ -167,19 +167,23 @@ class CodeMigrationEnvironment(Environment):
         }
 
     def _run_tests(self, code: str, lang: str) -> Tuple[bool, str]:
-        # Load pre-baked tests from scenario
         tests = json.loads((self.scenario_dir / "tests.json").read_text())
+
         if lang == "python":
-            # Execute tests in isolated subprocess with timeout
             try:
+                wrapper = f"CODE_SOURCE = {code!r}\n{tests.get('runner', '')}"
                 result = subprocess.run(
-                    ["python3", "-c", f"{code}\n{tests['runner']}"],
-                    capture_output=True, text=True, timeout=2
+                    ["python", "-c", wrapper],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
                 )
                 return result.returncode == 0, result.stdout or result.stderr
             except subprocess.TimeoutExpired:
                 return False, "Test timeout"
-        # Add Node.js test runner similarly
+            except Exception as e:
+                return False, f"Test runner error: {e}"
+
         return True, "Tests skipped"
 
     def _grade_idioms(self, code: str, idioms: List[str]) -> float:
