@@ -29,9 +29,9 @@ MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
 SUCCESS_SCORE_THRESHOLD = float(os.environ.get("SUCCESS_SCORE_THRESHOLD", "0.5"))
 
 TASKS = [
-    ("python_modernize", "easy"),
+    # ("python_modernize", "easy"),
     ("python_to_node",   "medium"),
-    ("pandas_to_polars", "hard"),
+    # ("pandas_to_polars", "hard"),
 ]
 
 def log_start(task: str, env: str, model: str):
@@ -52,11 +52,12 @@ def get_nvidia_model_candidates() -> List[Tuple[str, str]]:
     candidates = [
         # (os.environ.get("NVIDIA_MODEL_STEP_FLASH", ""), os.environ.get("NVIDIA_KEY_STEP_FLASH", "")),
         (os.environ.get("NVIDIA_MODEL_DEVSTRAL", ""), os.environ.get("NVIDIA_KEY_DEVSTRAL", "")),
-        (os.environ.get("NVIDIA_MODEL_KIMI_K2", ""), os.environ.get("NVIDIA_KEY_KIMI_K2", "")),
-        (os.environ.get("NVIDIA_MODEL_MISTRAL_LARGE", ""), os.environ.get("NVIDIA_KEY_MISTRAL_LARGE", "")),
-        (os.environ.get("NVIDIA_MODEL_DEEPSEEK_V3_1", ""), os.environ.get("NVIDIA_KEY_DEEPSEEK_V3_1", "")),
-        (os.environ.get("NVIDIA_MODEL_MAGISTRAL_SMALL", ""), os.environ.get("NVIDIA_KEY_MAGISTRAL_SMALL", "")),
-        (os.environ.get("NVIDIA_MODEL_GLM47", ""), os.environ.get("NVIDIA_KEY_GLM47", "")),
+        # (os.environ.get("NVIDIA_MODEL_KIMI_K2", ""), os.environ.get("NVIDIA_KEY_KIMI_K2", "")),
+        # (os.environ.get("NVIDIA_MODEL_MISTRAL_LARGE", ""), os.environ.get("NVIDIA_KEY_MISTRAL_LARGE", "")),
+        # (os.environ.get("NVIDIA_MODEL_DEEPSEEK_V3_1", ""), os.environ.get("NVIDIA_KEY_DEEPSEEK_V3_1", "")),
+        # (os.environ.get("NVIDIA_MODEL_MAGISTRAL_SMALL", ""), os.environ.get("NVIDIA_KEY_MAGISTRAL_SMALL", "")),
+        # (os.environ.get("NVIDIA_MODEL_GLM47", ""), os.environ.get("NVIDIA_KEY_GLM47", "")),
+        # (os.environ.get("gemma_4b_model", ""), os.environ.get("gemma_4b_key", ""))
     ]
     return [(model, key) for model, key in candidates if model and key]
 

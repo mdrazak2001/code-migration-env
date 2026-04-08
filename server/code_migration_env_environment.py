@@ -186,8 +186,34 @@ class CodeMigrationEnvironment(Environment):
             except Exception as e:
                 return False, f"Test runner error: {e}"
 
+        if lang == "javascript":
+            try:
+                import tempfile, os
+
+                # write submitted code to a temp file
+                with tempfile.NamedTemporaryFile(suffix=".js", mode="w", delete=False) as f:
+                    f.write(code + "\n\n" + tests.get("runner", ""))
+                    tmp = f.name
+
+                result = subprocess.run(
+                    ["node", tmp],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                os.unlink(tmp)
+                return result.returncode == 0, result.stdout or result.stderr
+
+            except subprocess.TimeoutExpired:
+                return False, "Test timeout"
+            except FileNotFoundError:
+                return False, "Node not available"
+            except Exception as e:
+                return False, f"Test runner error: {e}"
+
         return True, "Tests skipped"
 
+        
     def _grade_idioms(self, code: str, idioms: List[str]) -> float:
         # Simple keyword/regex matching for idiomatic patterns
         matches = sum(1 for pat in idioms if pat in code)

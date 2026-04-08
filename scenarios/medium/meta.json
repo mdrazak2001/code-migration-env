@@ -3,7 +3,13 @@
   "difficulty": "medium",
   "source_lang": "python",
   "target_lang": "javascript",
-  "requirements": "Use async/await, fetch API, proper error handling, JSON parsing",
-  "test_desc": "Tests validate async structure and fetch usage",
-  "required_idioms": ["async ", "await ", "fetch(", "try {", "catch"]
+  "requirements": "Use async/await, fetch API, query-parameter construction, JSON parsing, and explicit error handling.",
+  "test_desc": "Validates fetch behavior, query string handling, headers, JSON parsing, and error propagation.",
+  "required_idioms": [
+    "async function",
+    "await fetch(",
+    "response.ok",
+    "response.json(",
+    "URL("
+  ]
 }
