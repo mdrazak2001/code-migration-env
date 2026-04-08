@@ -13,7 +13,10 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from models import CodeMigrationAction, CodeMigrationObservation
+try:
+    from .models import CodeMigrationAction, CodeMigrationObservation
+except ImportError:
+    from models import CodeMigrationAction, CodeMigrationObservation
 
 
 class CodeMigrationEnv(

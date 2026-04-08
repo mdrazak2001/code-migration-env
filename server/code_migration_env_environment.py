@@ -53,9 +53,14 @@ class CodeMigrationEnvironment(Environment):
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
     def __init__(self, scenario_dir: str = None):
+        repo_root = Path(__file__).resolve().parent.parent
+        default_scenario = repo_root / "scenarios" / "easy"
+
         if scenario_dir is None:
-            scenario_dir = os.environ.get("SCENARIO_DIR", "/app/env/scenarios/easy")
+            scenario_dir = os.environ.get("SCENARIO_DIR", str(default_scenario))
+        
         self.scenario_dir = Path(scenario_dir)
+
         self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
         self.attempts = 0
         self.max_attempts = 3
@@ -66,8 +71,9 @@ class CodeMigrationEnvironment(Environment):
 
     def reset(self, seed=None, episode_id=None, **kwargs) -> CodeMigrationObservation:
 
+        repo_root = Path(__file__).resolve().parent.parent
         if episode_id and episode_id in ("easy", "medium", "hard"):
-            base_dir = Path(os.environ.get("SCENARIOS_BASE", "/app/env/scenarios"))
+            base_dir = Path(os.environ.get("SCENARIOS_BASE", str(repo_root / "scenarios")))
             self.scenario_dir = base_dir / episode_id
             self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
             self.source_code = (self.scenario_dir / "source.py").read_text()

@@ -29,9 +29,9 @@ MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
 SUCCESS_SCORE_THRESHOLD = float(os.environ.get("SUCCESS_SCORE_THRESHOLD", "0.5"))
 
 TASKS = [
-    # ("python_modernize", "easy"),
+    ("python_modernize", "easy"),
     ("python_to_node",   "medium"),
-    # ("pandas_to_polars", "hard"),
+    ("pandas_to_polars", "hard"),
 ]
 
 def log_start(task: str, env: str, model: str):
