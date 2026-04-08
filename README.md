@@ -1,3 +1,20 @@
+
+---
+title: Code Migration Environment
+emoji: 🔄
+colorFrom: blue
+colorTo: purple
+sdk: docker
+sdk_version: "latest"
+app_file: server/app.py
+pinned: false
+tags:
+  - openenv
+  - code-migration
+  - reinforcement-learning
+  - agent-evaluation
+---
+
 # Code Migration Environment
 
 An OpenEnv environment where AI agents migrate real-world code across 
