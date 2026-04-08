@@ -1,9 +1,15 @@
 {
-  "id": "pandas_to_polars",
+  "id": "pandas_to_polars_advanced",
   "difficulty": "hard",
   "source_lang": "python",
   "target_lang": "python",
-  "requirements": "Use Polars LazyFrame, lazy evaluation, no .collect() until final step, explicit schema where possible",
-  "test_desc": "Tests validate LazyFrame usage and output equivalence",
-  "required_idioms": ["pl.scan_csv", "with_columns", ".collect()", "pl.col", ".alias("]
+  "requirements": "Migrate to Polars LazyFrame. Handle: null filling with group median, rolling window aggregation, string normalization, multi-column groupby aggregations, no pandas usage.",
+  "test_desc": "Validates output correctness, window logic, filtering, aggregation, and Polars usage",
+  "required_idioms": [
+    "pl.scan_csv",
+    "with_columns",
+    ".collect()",
+    "pl.col",
+    ".over("
+  ]
 }

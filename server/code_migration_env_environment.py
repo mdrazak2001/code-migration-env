@@ -132,6 +132,8 @@ class CodeMigrationEnvironment(Environment):
             obs.reward = reward
             obs.done = done
             return obs
+        else:
+            reward += 0.3
 
         test_ok, test_msg = self._run_tests(code, self.task_meta["target_lang"])
         reward += 0.5 if test_ok else 0.0
