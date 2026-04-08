@@ -69,20 +69,23 @@ class CodeMigrationEnvironment(Environment):
         # Read source immediately so it's available even without reset()
         self.source_code = (self.scenario_dir / "source.py").read_text()
 
-    def reset(self, seed=None, episode_id=None, **kwargs) -> CodeMigrationObservation:
+    def reset(self, seed=None, episode_id=None, **kwargs):
+        # ✅ DEFAULT to easy if nothing passed
+        if not episode_id:
+            episode_id = "easy"
 
         repo_root = Path(__file__).resolve().parent.parent
-        if episode_id and episode_id in ("easy", "medium", "hard"):
-            base_dir = Path(os.environ.get("SCENARIOS_BASE", str(repo_root / "scenarios")))
-            self.scenario_dir = base_dir / episode_id
-            self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
-            self.source_code = (self.scenario_dir / "source.py").read_text()
+        base_dir = Path(os.environ.get("SCENARIOS_BASE", str(repo_root / "scenarios")))
+
+        self.scenario_dir = base_dir / episode_id
+
+        self.task_meta = json.loads((self.scenario_dir / "meta.json").read_text())
+        self.source_code = (self.scenario_dir / "source.py").read_text()
 
         self.attempts = 0
-        self.history: List[str] = []
-        self._reset_rubric()
+        self.history = []
 
-        obs = CodeMigrationObservation(
+        return CodeMigrationObservation(
             task_id=self.task_meta["id"],
             difficulty=self.task_meta["difficulty"],
             source_code=self.source_code,
@@ -90,11 +93,8 @@ class CodeMigrationEnvironment(Environment):
             target_language=self.task_meta["target_lang"],
             requirements=self.task_meta["requirements"],
             test_description=self.task_meta["test_desc"],
-            history=[],
-            reward=0.0,
-            done=False,
+            history=self.history,
         )
-        return obs
 
 
     def _validate_syntax(self, code: str, lang: str) -> Tuple[bool, str]:
