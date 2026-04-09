@@ -11,6 +11,13 @@ from typing import List, Optional, Dict, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 
+try:
+    from code_migration_env.client import CodeMigrationEnv
+    from code_migration_env.models import CodeMigrationAction
+except ImportError:
+    from client import CodeMigrationEnv
+    from models import CodeMigrationAction
+
 load_dotenv()
 
 def get_env_var(name: str, required: bool = True, default: Optional[str] = None) -> str:
@@ -187,7 +194,6 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
 async def run_single_task_with_env(env, task_name: str, episode_id: str, models, current_model):
     log_start(task=task_name, env=IMAGE_NAME, model=current_model)
 
-    from models import CodeMigrationAction
 
     rewards: List[float] = []
     steps_taken = 0
@@ -271,8 +277,6 @@ async def main() -> None:
     current_model = models[0][0]
     task_results = []
 
-    from client import CodeMigrationEnv
-    from models import CodeMigrationAction
 
     # ONE env for all tasks
     env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
