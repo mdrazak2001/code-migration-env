@@ -6,13 +6,10 @@ colorFrom: blue
 colorTo: purple
 sdk: docker
 sdk_version: "latest"
-app_file: server/app.py
 pinned: false
+app_port: 8000
 tags:
   - openenv
-  - code-migration
-  - reinforcement-learning
-  - agent-evaluation
 ---
 
 # Code Migration Environment

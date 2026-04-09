@@ -1,4 +1,4 @@
-# code_migration_env\inference_nvidia.py
+# code_migration_env\inference.py
 
 import os
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -206,6 +206,8 @@ async def run_single_task_with_env(env, task_name: str, episode_id: str, models,
 
             action_data = None
             for model_name, api_key in models:
+                # print("model: ", model_name)
+                # print("key: ", api_key)
                 res = await call_model_for_action(model_name, api_key, prompt)
                 if res["translated_code"]:
                     action_data = res
