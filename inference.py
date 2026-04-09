@@ -271,20 +271,26 @@ async def run_single_task_with_env(env, task_name: str, episode_id: str, models,
 async def main() -> None:
     models = get_nvidia_model_candidates()
     if not models:
-        print("ERROR: No NVIDIA model/key pairs found.", flush=True)
+        print("ERROR: No model/key pairs found.", flush=True)
         raise SystemExit(1)
 
     current_model = models[0][0]
     task_results = []
 
-    # ✅ Wrap env creation in try/except
+    # Detect if IMAGE_NAME is a URL (HF Space) or a Docker image
+    image_or_url = os.environ.get("IMAGE_NAME", "code-migration-env")
+    
     try:
-        env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
+        if image_or_url.startswith("http"):
+            # Connect directly to running server (HF Space or local server)
+            env = CodeMigrationEnv(base_url=image_or_url)
+        else:
+            # Start Docker container locally
+            env = await CodeMigrationEnv.from_docker_image(image_or_url)
     except Exception as e:
-        print(f"[FATAL] Failed to initialize CodeMigrationEnv: {e}", flush=True)
-        # Log end for each task as failed so the grader sees output
+        print(f"[FATAL] Failed to initialize env: {e}", flush=True)
         for task_name, _ in TASKS:
-            log_start(task=task_name, env=IMAGE_NAME, model="N/A")
+            log_start(task=task_name, env=image_or_url, model="N/A")
             log_end(success=False, steps=0, score=0.0, rewards=[])
         raise SystemExit(1)
 
@@ -299,6 +305,10 @@ async def main() -> None:
             await env.close()
         except Exception as e:
             print(f"[DEBUG] env.close() error: {e}", flush=True)
+
+    print("\n[SUMMARY] Task Results:", flush=True)
+    for r in task_results:
+        print(f"  {r['task']}: success={r['success']} score={r['score']:.3f}", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
