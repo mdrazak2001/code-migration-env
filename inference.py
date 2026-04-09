@@ -24,8 +24,8 @@ def get_env_var(name: str, required: bool = True, default: Optional[str] = None)
 # Spec-required variable names
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME")
-HF_TOKEN = get_env_var("HF_TOKEN")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 
 NVIDIA_BASE_URL = API_BASE_URL  # keep your existing logic working
 
