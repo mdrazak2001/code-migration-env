@@ -277,9 +277,16 @@ async def main() -> None:
     current_model = models[0][0]
     task_results = []
 
-
-    # ONE env for all tasks
-    env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
+    # ✅ Wrap env creation in try/except
+    try:
+        env = await CodeMigrationEnv.from_docker_image(IMAGE_NAME)
+    except Exception as e:
+        print(f"[FATAL] Failed to initialize CodeMigrationEnv: {e}", flush=True)
+        # Log end for each task as failed so the grader sees output
+        for task_name, _ in TASKS:
+            log_start(task=task_name, env=IMAGE_NAME, model="N/A")
+            log_end(success=False, steps=0, score=0.0, rewards=[])
+        raise SystemExit(1)
 
     try:
         for task_name, episode_id in TASKS:
@@ -292,10 +299,6 @@ async def main() -> None:
             await env.close()
         except Exception as e:
             print(f"[DEBUG] env.close() error: {e}", flush=True)
-
-    print("\n[SUMMARY] Task Results:", flush=True)
-    for r in task_results:
-        print(f"  {r['task']}: success={r['success']} score={r['score']:.3f}", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
