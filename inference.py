@@ -22,15 +22,15 @@ def get_env_var(name: str, required: bool = True, default: Optional[str] = None)
 
 
 # Spec-required variable names
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = get_env_var("MODEL_NAME", required=False, default="mistralai/devstral-2-123b-instruct-2512")
-HF_TOKEN = get_env_var("HF_TOKEN", required=False, default="")
-API_KEY = get_env_var("OPENAI_API_KEY", required=False, default=HF_TOKEN)
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME")
+HF_TOKEN = get_env_var("HF_TOKEN")
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
 NVIDIA_BASE_URL = API_BASE_URL  # keep your existing logic working
 
 TASK_NAME = os.environ.get("TASK_NAME", "python_modernize")
-IMAGE_NAME = os.environ.get("IMAGE_NAME", "huggingface/spaces/razak123/code-migration-env")
+IMAGE_NAME = "code-migration-env"
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "3"))
 MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
 SUCCESS_SCORE_THRESHOLD = float(os.environ.get("SUCCESS_SCORE_THRESHOLD", "0.5"))
@@ -70,10 +70,10 @@ def get_nvidia_model_candidates() -> List[Tuple[str, str]]:
     """
     candidates = [
         # Spec-required primary (judges will set these)
-        (os.environ.get("MODEL_NAME", ""), os.environ.get("OPENAI_API_KEY", "") or os.environ.get("HF_TOKEN", "")),
+        (MODEL_NAME, API_KEY),
 
         # fallbacks
-        (os.environ.get("NVIDIA_MODEL_DEVSTRAL", ""), os.environ.get("NVIDIA_KEY_DEVSTRAL", "")),
+        # (os.environ.get("NVIDIA_MODEL_DEVSTRAL", ""), os.environ.get("NVIDIA_KEY_DEVSTRAL", "")),
         # (os.environ.get("NVIDIA_MODEL_STEP_FLASH", ""), os.environ.get("NVIDIA_KEY_STEP_FLASH", "")),
         # (os.environ.get("NVIDIA_MODEL_KIMI_K2", ""), os.environ.get("NVIDIA_KEY_KIMI_K2", "")),
         # (os.environ.get("NVIDIA_MODEL_MISTRAL_LARGE", ""), os.environ.get("NVIDIA_KEY_MISTRAL_LARGE", "")),
@@ -129,6 +129,7 @@ Previous attempts:
 Source code:
 ```{obs.source_language}
 {obs.source_code}
+```
 
 Return ONLY valid JSON with exactly these keys:
 
