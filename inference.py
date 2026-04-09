@@ -1,5 +1,13 @@
 # code_migration_env\inference.py
 
+import sys
+from pathlib import Path
+
+# Ensure imports work whether run from repo root or package dir
+_here = Path(__file__).resolve().parent
+sys.path.insert(0, str(_here))
+sys.path.insert(0, str(_here / "code_migration_env"))
+
 import os
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -15,8 +23,14 @@ try:
     from code_migration_env.client import CodeMigrationEnv
     from code_migration_env.models import CodeMigrationAction
 except ImportError:
-    from client import CodeMigrationEnv
-    from models import CodeMigrationAction
+    try:
+        from client import CodeMigrationEnv
+        from models import CodeMigrationAction
+    except ImportError:
+        # Last resort: explicit path
+        sys.path.insert(0, str(_here))
+        from client import CodeMigrationEnv
+        from models import CodeMigrationAction
 
 load_dotenv()
 
@@ -37,7 +51,7 @@ API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 NVIDIA_BASE_URL = API_BASE_URL  # keep your existing logic working
 
 TASK_NAME = os.environ.get("TASK_NAME", "python_modernize")
-IMAGE_NAME = "code-migration-env"
+IMAGE_NAME = os.environ.get("IMAGE_NAME", "https://razak123-code-migration-env.hf.space")
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "3"))
 MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
 SUCCESS_SCORE_THRESHOLD = float(os.environ.get("SUCCESS_SCORE_THRESHOLD", "0.5"))
