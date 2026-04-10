@@ -33,10 +33,26 @@ except ImportError:
 
 load_dotenv()
 
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-MODEL_NAME = (os.getenv("MODEL_NAME") or "").strip()
+DEFAULT_MODEL_NAME = "mistralai/devstral-2-123b-instruct-2512"
+
+API_BASE_URL = (
+    os.getenv("API_BASE_URL")
+    or os.getenv("OPENAI_BASE_URL")
+    or "https://router.huggingface.co/v1"
+)
+MODEL_NAME = (
+    os.getenv("MODEL_NAME")
+    or os.getenv("OPENAI_MODEL")
+    or os.getenv("LITELLM_MODEL")
+    or DEFAULT_MODEL_NAME
+).strip()
 HF_TOKEN = (os.getenv("HF_TOKEN") or "").strip()
-API_KEY = (os.getenv("API_KEY") or "").strip()
+API_KEY = (
+    os.getenv("API_KEY")
+    or os.getenv("OPENAI_API_KEY")
+    or HF_TOKEN
+    or ""
+).strip()
 
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "3"))
 MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
@@ -487,8 +503,11 @@ async def run_single_task_with_env(
 async def main() -> None:
     models = get_model_candidates()
     task_results = []
-    if not has_proxy_llm_config():
-        raise SystemExit("Missing required API_BASE_URL / MODEL_NAME / API_KEY configuration.")
+    print(
+        "[DEBUG] LLM config "
+        f"base_url={bool(API_BASE_URL)} model={bool(MODEL_NAME)} api_key={bool(API_KEY)}",
+        flush=True,
+    )
 
     try:
         env, env_target = await create_env_client()
