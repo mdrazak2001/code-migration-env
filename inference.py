@@ -36,7 +36,7 @@ load_dotenv()
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = (os.getenv("MODEL_NAME") or "").strip()
 HF_TOKEN = (os.getenv("HF_TOKEN") or "").strip()
-API_KEY = (os.getenv("API_KEY") or HF_TOKEN).strip()
+API_KEY = (os.getenv("API_KEY") or "").strip()
 
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "3"))
 MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
@@ -178,6 +178,10 @@ def get_model_candidates() -> List[Tuple[str, str]]:
     return [(model, key) for model, key in candidates if model and key]
 
 
+def has_proxy_llm_config() -> bool:
+    return bool(API_BASE_URL and MODEL_NAME and API_KEY)
+
+
 def clean_json_response(text: str) -> str:
     text = text.strip()
     text = re.sub(r"^```json\s*", "", text, flags=re.IGNORECASE)
@@ -284,7 +288,7 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
             "explanation": "openai package is unavailable in this runtime.",
         }
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=api_key)
+    client = OpenAI(base_url=API_BASE_URL, api_key=api_key, timeout=20.0)
 
     try:
         completion = client.chat.completions.create(
@@ -324,19 +328,22 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
 
 
 async def choose_action(obs, models: List[Tuple[str, str]]) -> Tuple[Dict[str, str], str]:
-    deterministic = get_deterministic_action(obs)
-    if deterministic:
-        return deterministic, "deterministic-solver"
-
     prompt = build_prompt(obs)
     for model_name, api_key in models:
         result = await call_model_for_action(model_name, api_key, prompt)
         if result.get("translated_code"):
             return result, model_name
 
+    deterministic = get_deterministic_action(obs)
+    if deterministic:
+        deterministic["explanation"] = (
+            "Model call failed during task execution, so a deterministic fallback was used."
+        )
+        return deterministic, "deterministic-fallback"
+
     return {
         "translated_code": build_fallback_translation(obs),
-        "explanation": "No deterministic or model-based solver was available.",
+        "explanation": "No model-based solver was available.",
     }, "fallback-stub"
 
 
@@ -397,8 +404,6 @@ async def create_env_client() -> Tuple[CodeMigrationEnv, str]:
 
 
 def default_runner_label(task_name: str, models: List[Tuple[str, str]]) -> str:
-    if task_name in DETERMINISTIC_SOLUTIONS:
-        return "deterministic-solver"
     if models:
         return models[0][0]
     return "fallback-stub"
@@ -482,6 +487,8 @@ async def run_single_task_with_env(
 async def main() -> None:
     models = get_model_candidates()
     task_results = []
+    if not has_proxy_llm_config():
+        raise SystemExit("Missing required API_BASE_URL / MODEL_NAME / API_KEY configuration.")
 
     try:
         env, env_target = await create_env_client()
