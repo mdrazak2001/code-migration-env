@@ -57,6 +57,7 @@ API_KEY = (
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "3"))
 MAX_TOTAL_REWARD = float(os.environ.get("MAX_TOTAL_REWARD", "1.0"))
 SUCCESS_SCORE_THRESHOLD = float(os.environ.get("SUCCESS_SCORE_THRESHOLD", "0.5"))
+SCORE_EPSILON = 0.001
 
 TASKS = [
     ("python_modernize", "easy"),
@@ -187,6 +188,10 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     )
 
 
+def clamp_open_score(score: float) -> float:
+    return max(SCORE_EPSILON, min(1.0 - SCORE_EPSILON, score))
+
+
 def get_model_candidates() -> List[Tuple[str, str]]:
     candidates = [
         (MODEL_NAME, API_KEY),
@@ -304,7 +309,7 @@ async def call_model_for_action(model: str, api_key: str, prompt: str) -> Dict[s
             "explanation": "openai package is unavailable in this runtime.",
         }
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=api_key, timeout=20.0)
+    client = OpenAI(base_url=API_BASE_URL, api_key=api_key)
 
     try:
         completion = client.chat.completions.create(
@@ -484,11 +489,12 @@ async def run_single_task_with_env(
             if result.done:
                 break
 
-        score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
-        score = min(max(score, 0.0), 1.0)
+        score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else SCORE_EPSILON
+        score = clamp_open_score(score)
         success = score >= SUCCESS_SCORE_THRESHOLD
     except Exception as exc:
         print(f"[ERROR] Task {task_name} failed: {exc}", flush=True)
+        score = SCORE_EPSILON
 
     log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
     return {

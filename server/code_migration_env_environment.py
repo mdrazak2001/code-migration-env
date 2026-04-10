@@ -30,6 +30,8 @@ except ImportError:
 
 
 class CodeMigrationEnvironment(Environment):
+    SCORE_EPSILON = 0.01
+
     """
     A simple echo environment that echoes back messages.
 
@@ -146,7 +148,7 @@ class CodeMigrationEnvironment(Environment):
 
         idiom_score = self._grade_idioms(code, self.task_meta["required_idioms"])
         reward += idiom_score * 0.4
-        reward = max(0.0, min(1.0, reward))
+        reward = self._clamp_open_score(reward)
         done = True
 
         obs = self._get_observation(action, test_msg)
@@ -162,6 +164,9 @@ class CodeMigrationEnvironment(Environment):
         print("info: ", info)
         
         return obs
+
+    def _clamp_open_score(self, score: float) -> float:
+        return max(self.SCORE_EPSILON, min(1.0 - self.SCORE_EPSILON, score))
 
 
     @property
