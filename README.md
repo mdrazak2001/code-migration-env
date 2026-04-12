@@ -83,13 +83,18 @@ Each task includes:
 
 The reward function gives partial credit instead of only binary success.
 
-- `+0.3` for valid target-language syntax
-- `+0.5` for passing functional tests
-- `+0.0` to `+0.4` for target-idiom alignment
-- penalties for clearly bad outcomes such as invalid syntax
+- syntax credit for code that parses in the target language
+- functional credit when deterministic tests pass
+- idiom credit for using migration-specific target patterns
+- a small efficiency penalty for needing extra repair attempts
 
 To satisfy OpenEnv validation and downstream evaluation rules, task rewards are
 clamped to the open interval `(0, 1)`.
+
+Tasks now support iterative refinement across multiple attempts. When a
+submission is syntactically valid but still fails tests or misses important
+idioms, the environment returns actionable feedback in `history` and allows the
+agent to revise its solution before the episode ends.
 
 ## Baseline Behavior
 
@@ -143,6 +148,14 @@ The environment is designed to run comfortably on modest infrastructure:
 
 Most runtime cost comes from remote LLM latency during baseline inference, not
 from the FastAPI environment itself.
+
+## Environment Design Notes
+
+- Episodes are intentionally short and lightweight, but no longer purely
+  single-shot. Agents can improve over successive attempts using structured
+  feedback.
+- The public `state` is limited to progress metadata and task context. Hidden
+  solutions and raw grader internals are not exposed there.
 
 ## Repository Structure
 

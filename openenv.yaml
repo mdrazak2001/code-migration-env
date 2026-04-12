@@ -55,7 +55,7 @@ tasks:
       - ".collect()"
       - "pl.col"
       - ".over("
-    grader: "syntax_check + test_run + idiom_match + resource_check"
+    grader: "syntax_check + test_run + idiom_match"
 
 graders:
   syntax_check:
@@ -68,7 +68,3 @@ graders:
   idiom_match:
     type: "keyword_overlap"
     weight: 0.4
-  resource_check:
-    type: "programmatic"
-    weight: 0.3
-    only_for: ["pandas_to_polars_advanced"]

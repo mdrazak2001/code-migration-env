@@ -24,5 +24,6 @@
     "Do not compute rolling metrics globally instead of per region",
     "Do not eagerly materialize intermediate frames"
   ],
-  "runtime_budget": "This transformation should stay efficient enough for shared CI runners and commodity batch machines."
+  "runtime_budget": "This transformation should stay efficient enough for shared CI runners and commodity batch machines.",
+  "test_timeout_s": 5.0
 }

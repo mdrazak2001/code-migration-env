@@ -60,6 +60,12 @@ FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
+# The JS migration task executes Node-based graders at runtime, so Node must be
+# available in the final image as well, not only in the build stage.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends nodejs npm && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy the virtual environment from builder
 COPY --from=builder /app/env/.venv /app/.venv
 

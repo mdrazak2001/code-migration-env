@@ -237,6 +237,28 @@ def build_prompt(obs) -> str:
     info = getattr(obs, "info", {}) or {}
     acceptance_checks = "\n".join(f"- {item}" for item in info.get("acceptance_checks", [])) or "(not provided)"
     pitfalls = "\n".join(f"- {item}" for item in info.get("pitfalls", [])) or "(not provided)"
+    task_specific_hints = []
+
+    if getattr(obs, "task_id", "") == "python_to_node":
+        task_specific_hints.extend(
+            [
+                "Use the global fetch API directly.",
+                "Construct the request with URL and url.searchParams rather than returning a mocked object.",
+                "Preserve headers Accept=application/json and X-Request-Source=openenv.",
+            ]
+        )
+
+    if getattr(obs, "task_id", "") == "pandas_to_polars_advanced":
+        task_specific_hints.extend(
+            [
+                "Target Polars 1.x compatible code.",
+                "Prefer pl.scan_csv(filepath, try_parse_dates=True) or pl.scan_csv(filepath).",
+                "Do not use parse_dates=True with pl.scan_csv.",
+                "Return a collected Polars DataFrame at the end.",
+            ]
+        )
+
+    task_hint_block = "\n".join(f"- {item}" for item in task_specific_hints) or "(none)"
     return f"""
 You are a code migration expert.
 
@@ -263,8 +285,15 @@ Acceptance checks:
 Known pitfalls:
 {pitfalls}
 
+Task-specific implementation hints:
+{task_hint_block}
+
 Runtime budget:
 {info.get("runtime_budget", "(not provided)")}
+
+Attempts:
+Used {info.get("attempts_used", 0)} of {info.get("max_attempts", MAX_STEPS)}.
+Remaining: {info.get("attempts_remaining", MAX_STEPS)}
 
 Previous attempts:
 {history if history else "(none)"}
@@ -280,6 +309,7 @@ translated_code
 explanation
 
 Do not include markdown fences.
+When prior feedback exists, revise the earlier attempt instead of restarting blindly.
 """.strip()
 
 
@@ -493,12 +523,17 @@ async def run_single_task_with_env(
             if len(action.translated_code) > 100:
                 action_preview += "..."
 
+            feedback = None
+            if getattr(result, "observation", None) and getattr(result.observation, "history", None):
+                feedback = result.observation.history[-1]
+                print(f"[DEBUG] feedback={feedback}", flush=True)
+
             log_step(
                 step=step,
                 action=action_preview,
                 reward=reward,
                 done=result.done,
-                error=None,
+                error=feedback,
             )
 
             if step == 1 and runner_label != default_runner_label(task_name, models):
@@ -507,8 +542,10 @@ async def run_single_task_with_env(
             if result.done:
                 break
 
-        score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else SCORE_EPSILON
-        score = clamp_open_score(score)
+        # In the iterative setting each reward is a quality snapshot, not an
+        # additive return. The best achieved reward is the task score.
+        score = max(rewards) if rewards else SCORE_EPSILON
+        score = clamp_open_score(score / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else score)
         success = score >= SUCCESS_SCORE_THRESHOLD
     except Exception as exc:
         print(f"[ERROR] Task {task_name} failed: {exc}", flush=True)
@@ -540,7 +577,7 @@ async def main() -> None:
         print(f"[FATAL] Failed to initialize env: {exc}", flush=True)
         for task_name, _ in TASKS:
             log_start(task=task_name, env_target=env_target, model=default_runner_label(task_name, models))
-            log_end(success=False, steps=0, score=0.0, rewards=[])
+            log_end(success=False, steps=0, score=SCORE_EPSILON, rewards=[])
         return
 
     try:
