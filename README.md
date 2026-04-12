@@ -2,7 +2,7 @@
 title: Code Migration Environment
 emoji: "🔁"
 colorFrom: blue
-colorTo: cyan
+colorTo: purple
 sdk: docker
 sdk_version: "latest"
 pinned: false
