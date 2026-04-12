@@ -96,6 +96,7 @@ class CodeMigrationEnvironment(Environment):
             requirements=self.task_meta["requirements"],
             test_description=self.task_meta["test_desc"],
             history=self.history,
+            info=self._build_task_info(),
         )
 
 
@@ -167,6 +168,15 @@ class CodeMigrationEnvironment(Environment):
 
     def _clamp_open_score(self, score: float) -> float:
         return max(self.SCORE_EPSILON, min(1.0 - self.SCORE_EPSILON, score))
+
+    def _build_task_info(self) -> Dict[str, Any]:
+        return {
+            "business_context": self.task_meta.get("business_context", ""),
+            "stakeholder_request": self.task_meta.get("stakeholder_request", ""),
+            "acceptance_checks": self.task_meta.get("acceptance_checks", []),
+            "pitfalls": self.task_meta.get("pitfalls", []),
+            "runtime_budget": self.task_meta.get("runtime_budget", ""),
+        }
 
 
     @property
@@ -242,5 +252,6 @@ class CodeMigrationEnvironment(Environment):
             target_language=self.task_meta["target_lang"],
             requirements=self.task_meta["requirements"],
             test_description=self.task_meta["test_desc"],
-            history=history[-5:]  # Keep last 5 attempts
+            history=history[-5:],  # Keep last 5 attempts
+            info=self._build_task_info(),
         )

@@ -83,6 +83,7 @@ class CodeMigrationEnv(
             requirements=obs_data.get("requirements", ""),
             test_description=obs_data.get("test_description", ""),
             history=obs_data.get("history", []),
+            info=obs_data.get("info", {}),
         )
 
         return StepResult(

@@ -5,5 +5,18 @@
   "target_lang": "python",
   "requirements": "Use structural pattern matching, pathlib.Path, explicit type hints",
   "test_desc": "Tests validate functional equivalence + modern syntax usage",
-  "required_idioms": ["match ", "case ", "Path(", "->", ": str"]
+  "required_idioms": ["match ", "case ", "Path(", "->", ": str"],
+  "business_context": "A platform team is modernizing shared Python helpers used by deployment scripts and internal maintenance jobs before the Python 3.12 rollout.",
+  "stakeholder_request": "Keep the public behavior exactly the same while replacing legacy control flow and file handling with modern, readable Python.",
+  "acceptance_checks": [
+    "Preserve config lookup behavior for known and unknown keys",
+    "Use pathlib-based file access instead of os.path + manual open/close",
+    "Add precise type hints without changing outputs"
+  ],
+  "pitfalls": [
+    "Do not break integer return values for db_port",
+    "Do not change the base /data path assumption",
+    "Do not introduce extra helper APIs that alter the function contract"
+  ],
+  "runtime_budget": "This helper runs in short-lived operational scripts, so startup overhead should stay minimal."
 }

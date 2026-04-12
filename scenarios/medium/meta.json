@@ -11,5 +11,18 @@
     "response.ok",
     "response.json(",
     "URL("
-  ]
+  ],
+  "business_context": "A backend integration client is being ported from a Python service to a Node.js edge worker that calls the same user profile API.",
+  "stakeholder_request": "Preserve request semantics exactly so the Node client can be dropped into production without breaking analytics attribution or error handling.",
+  "acceptance_checks": [
+    "Carry over query parameter behavior for includeDetails",
+    "Preserve required headers used by downstream observability",
+    "Raise an error on non-OK responses instead of silently returning data"
+  ],
+  "pitfalls": [
+    "Do not forget to append the source marker header",
+    "Do not build URLs with brittle string concatenation when URL utilities are available",
+    "Do not swallow fetch failures"
+  ],
+  "runtime_budget": "This code is intended for latency-sensitive request handling in a service edge path."
 }

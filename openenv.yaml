@@ -7,8 +7,8 @@ port: 8000
 
 # openenv.yaml
 version: 0.1.0
-description: "Agent migrates code across languages/frameworks with deterministic grading"
-author: "Your Name"
+description: "A real-world code migration benchmark covering Python modernization, Python-to-Node API migration, and pandas-to-Polars data pipeline rewrites."
+author: "Md Razak"
 license: "MIT"
 
 tasks:
@@ -71,4 +71,4 @@ graders:
   resource_check:
     type: "programmatic"
     weight: 0.3
-    only_for: ["pandas_to_polars"]
+    only_for: ["pandas_to_polars_advanced"]

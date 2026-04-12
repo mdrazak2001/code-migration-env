@@ -11,5 +11,18 @@
     ".collect()",
     "pl.col",
     ".over("
-  ]
+  ],
+  "business_context": "A nightly revenue analytics pipeline is being migrated off pandas because current runs are too memory-heavy for the team's shared batch workers.",
+  "stakeholder_request": "Rebuild the transformation in Polars lazy mode while preserving business metrics, grouping semantics, and filtering behavior used by finance dashboards.",
+  "acceptance_checks": [
+    "Keep the region normalization and exclusion logic intact",
+    "Fill missing cost values with a per-region median before margin calculations",
+    "Use a lazy Polars pipeline and collect only at the end"
+  ],
+  "pitfalls": [
+    "Do not reintroduce pandas anywhere in the migrated solution",
+    "Do not compute rolling metrics globally instead of per region",
+    "Do not eagerly materialize intermediate frames"
+  ],
+  "runtime_budget": "This transformation should stay efficient enough for shared CI runners and commodity batch machines."
 }

@@ -234,6 +234,9 @@ def extract_json_object(text: str) -> Optional[Dict[str, str]]:
 
 def build_prompt(obs) -> str:
     history = "\n".join(obs.history or [])
+    info = getattr(obs, "info", {}) or {}
+    acceptance_checks = "\n".join(f"- {item}" for item in info.get("acceptance_checks", [])) or "(not provided)"
+    pitfalls = "\n".join(f"- {item}" for item in info.get("pitfalls", [])) or "(not provided)"
     return f"""
 You are a code migration expert.
 
@@ -247,6 +250,21 @@ Requirements:
 
 Test description:
 {obs.test_description}
+
+Business context:
+{info.get("business_context", "(not provided)")}
+
+Stakeholder request:
+{info.get("stakeholder_request", "(not provided)")}
+
+Acceptance checks:
+{acceptance_checks}
+
+Known pitfalls:
+{pitfalls}
+
+Runtime budget:
+{info.get("runtime_budget", "(not provided)")}
 
 Previous attempts:
 {history if history else "(none)"}
